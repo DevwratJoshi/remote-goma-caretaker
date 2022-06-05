@@ -6,8 +6,9 @@
 	},
 	"searchResolution":
 	{
-		"width":64,
-		"height":64
-	}
-			
+		"width":320,
+		"height":320
+	},
+	"maxCapturedVideoLength":100,
+	"delayStepTimeTimeout": 0.5	
 }

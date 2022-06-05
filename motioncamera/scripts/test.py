@@ -4,7 +4,8 @@ from picamera import PiCamera
 import time
 import cv2
 import json
-from numpy import array, zeros, isclose
+from numpy import array, zeros, ones, isclose
+from numpy import max as MAX
 # initialize the camera and grab a reference to the raw camera capture
 # Resolution used when checking for motion (low resolution for faster searching)
 def loadConfig(fpath):
@@ -18,9 +19,36 @@ def GetToggledResolution(camera, config):
         
     return config["searchResolution"]["width"], config["searchResolution"]["height"]
 
+class MotionDetector:
+    """
+    Checks difference between camera frames frames to detect motion
+    """
+    _frameHeight = None
+    _frameWidth = None
+    _frame = None
+    _lastMotionDetectedTime = None
+
+    def __init__(self, frameWidth, frameHeight):
+        self._frameHeight = frameHeight
+        self._frameWidth = frameWidth
+        self._frame = zeros((frameWidth, frameHeight))
     
+    def CaluculateFrameDifference(self, newFrame):
+        """
+        Get the difference beween frames
+        """
+        
+        pass
 
 
+    def DetectMotion(self, newFrame):
+        diff = abs(self._frame - newFrame)
+        print(diff)
+        self._frame = newFrame
+        kernel = ones((5, 5))
+        diff = cv2.dilate(diff, kernel, 1)
+        return diff 
+        
 # Resolution used to check for motion in the frame
 
 def main():
@@ -33,15 +61,26 @@ def main():
     rawCapture = PiRGBArray(camera, size=searchResolution)
     # allow the camera to warmup
     time.sleep(0.1)
+    motionDetector = MotionDetector(searchResolution[0], searchResolution[1])
     # capture frames from the camera
+    lastDetectionTime = time.time()
+    final_frame = zeros((searchResolution[0], searchResolution[1])) 
     while True:
         for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
             # grab the raw NumPy array representing the image, then initialize the timestamp
             # and occupied/unoccupied text
             image = frame.array
             # show the frame
-            cv2.imshow("Frame", image)
+            gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            if time.time() - lastDetectionTime > config.get("delayStepTimeTimeout", 0.1):
+                lastDetectionTime = time.time()
+                final_frame = motionDetector.DetectMotion(gray_image)
+
+            cv2.imshow("Frame_diff", final_frame)
+            cv2.imshow("Frame_real", gray_image)
+            
             key = cv2.waitKey(1) & 0xFF
+
             # clear the stream in preparation for the next frame
             rawCapture.truncate(0)
             # if the `q` key was pressed, break from the loop
